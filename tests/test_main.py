@@ -1,15 +1,68 @@
 import unittest
+from datetime import datetime
 from unittest.mock import patch
 
 import main
 
 
 class StepRangeTests(unittest.TestCase):
-    def test_configured_limits_scale_until_22(self):
+    def test_fixed_minimum_with_24_hour_bonus(self):
         with patch.object(main, "config", {"MIN_STEP": "15000", "MAX_STEP": "18000"}, create=True):
-            self.assertEqual(main.get_min_max_by_time(11, 0), (7500, 9000))
-            self.assertEqual(main.get_min_max_by_time(22, 0), (15000, 18000))
-            self.assertEqual(main.get_min_max_by_time(23, 59), (15000, 18000))
+            for hour, minute, upper in [
+                (0, 0, 15000),
+                (6, 0, 15750),
+                (12, 0, 16500),
+                (18, 0, 17250),
+                (20, 0, 17500),
+                (22, 0, 17750),
+                (23, 59, 17997),
+            ]:
+                with self.subTest(hour=hour, minute=minute):
+                    self.assertEqual(main.get_min_max_by_time(hour, minute), (15000, upper))
+
+    def test_every_minute_stays_within_limits(self):
+        with patch.object(main, "config", {"MIN_STEP": "15000", "MAX_STEP": "18000"}, create=True):
+            previous_upper = 15000
+            for elapsed in range(1440):
+                lower, upper = main.get_min_max_by_time(*divmod(elapsed, 60))
+                self.assertEqual(lower, 15000)
+                self.assertEqual(upper, 15000 + 3000 * elapsed // 1440)
+                self.assertLessEqual(previous_upper, upper)
+                self.assertLessEqual(upper, 18000)
+                previous_upper = upper
+
+    def test_current_beijing_time_and_midnight_reset(self):
+        with patch.object(main, "config", {"MIN_STEP": "15000", "MAX_STEP": "18000"}, create=True):
+            with patch.object(main, "time_bj", datetime(2026, 10, 9, 23, 59), create=True):
+                self.assertEqual(main.get_min_max_by_time(), (15000, 17997))
+            with patch.object(main, "time_bj", datetime(2026, 10, 10, 0, 0), create=True):
+                self.assertEqual(main.get_min_max_by_time(), (15000, 15000))
+
+    def test_equal_limits(self):
+        with patch.object(main, "config", {"MIN_STEP": "15000", "MAX_STEP": "15000"}, create=True):
+            self.assertEqual(main.get_min_max_by_time(12, 0), (15000, 15000))
+
+    def test_invalid_limits_raise(self):
+        for minimum, maximum in [(-1, 18000), (18000, 15000)]:
+            with self.subTest(minimum=minimum, maximum=maximum):
+                with patch.object(main, "config", {"MIN_STEP": minimum, "MAX_STEP": maximum}, create=True):
+                    with self.assertRaisesRegex(ValueError, "Step limits"):
+                        main.get_min_max_by_time(12, 0)
+
+    def test_randomized_total_is_submitted(self):
+        for selected in (15000, 16500):
+            with self.subTest(selected=selected):
+                with patch.object(main, "user_tokens", {}, create=True), patch.object(
+                    main.MiMotionRunner, "login", return_value="test-token"
+                ), patch.object(main.random, "randint", return_value=selected) as randint, patch.object(
+                    main.zeppHelper, "post_fake_brand_data", return_value=(True, "success")
+                ) as post:
+                    runner = main.MiMotionRunner("example@example.com", "test-password")
+                    message, success = runner.login_and_post_step(15000, 16500)
+                    randint.assert_called_once_with(15000, 16500)
+                    post.assert_called_once_with(str(selected), "test-token", None, device_id=None)
+                    self.assertTrue(success)
+                    self.assertIn(str(selected), message)
 
 
 class ExecutionTests(unittest.TestCase):

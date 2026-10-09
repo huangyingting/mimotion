@@ -31,7 +31,16 @@ An independently maintained, private Zepp Life automation repository. There is n
 ## Github Actions 部署指南
 
 本仓库部署在 `master` 分支，建议使用私有仓库。账号密码只保存到 Actions 的 `CONFIG` Secret，不要提交到代码中。
-当前部署的步数配置为 `MIN_STEP=15000`、`MAX_STEP=18000`，依然按北京时间线性增长，在22点达到完整范围。
+当前部署的步数配置为 `MIN_STEP=15000`、`MAX_STEP=18000`。最低步数固定为15000，额外随机步数的上限按北京时间的24小时周期增长，每天午夜重置。
+
+```text
+bonus_limit = floor((MAX_STEP - MIN_STEP) × minutes_since_midnight / 1440)
+steps = MIN_STEP + random_integer(0, bonus_limit)
+```
+
+例如北京时间00:00为15000，12:00随机范围为15000–16500，18:00为15000–17250，22:00为15000–17750，23:59为15000–17997。
+每次执行设置当天的总步数，不累加；随机结果可能低于前一次，但始终在配置的最小和最大步数之间。
+
 未设置 `CRON_HOURS` 时保留工作流中的默认小时，即北京时间18、20、22点运行，分钟由 `Randomize Schedule` 自动调整。
 执行中任何账号失败会使工作流失败，不再显示为成功；只有成功执行后才会自动更新随机时间。
 Token没有变化时会跳过提交，不影响工作流成功状态。
@@ -90,8 +99,8 @@ Token没有变化时会跳过提交，不影响工作流成功状态。
   {
     "USER": "abcxxx@xx.com",
     "PWD": "password",
-    "MIN_STEP": "18000",
-    "MAX_STEP": "25000",
+    "MIN_STEP": "15000",
+    "MAX_STEP": "18000",
     "PUSH_PLUS_TOKEN": "",
     "PUSH_PLUS_HOUR": "",
     "PUSH_PLUS_MAX": "30",
@@ -107,8 +116,8 @@ Token没有变化时会跳过提交，不影响工作流成功状态。
   |-------------------------|----------------------------------------------------------------------------------------------------------------|
   | USER                    | 小米运动登录账号，仅支持小米运动账号对应的手机号或邮箱，不支持小米账号                                                                            |
   | PWD                     | 小米运动登录密码，仅支持小米运动账号对应的密码                                                                                        |
-  | MIN_STEP                | 最小步数                                                                                                           |
-  | MAX_STEP                | 最大步数，最大步数和最小步数随机范围随着时间线性增加，北京时间22点达到最大值                                                                        |
+  | MIN_STEP                | 固定最低步数，每次执行均不会低于此值                                                                                         |
+  | MAX_STEP                | 总步数上限；额外步数范围从0开始，按北京时间24小时周期增长，接近午夜时趋近MAX_STEP - MIN_STEP；必须不小于MIN_STEP                     |
   | PUSH_PLUS_TOKEN         | 推送加的个人token,申请地址[pushplus](https://www.pushplus.plus/push1.html)，工作流执行完成后推送每个账号的执行状态信息，如没有则不要填写                |
   | PUSH_PLUS_HOUR          | 限制只在某个整点进行pushplus的推送，值为整数，比如设置21，则只在北京时间21点XX分执行时才进行pushplus的消息推送。如不设置或值非数字则每次执行后都会进行推送                       |
   | PUSH_WECHAT_WEBHOOK_KEY | 企业微信推送通知的key，企业微信webhook机器人推送全地址为：https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key={机器人的key}，这里配置{机器人的key} |
@@ -129,8 +138,8 @@ Token没有变化时会跳过提交，不影响工作流成功状态。
 {
   "USER": "13800138000#13800138001",
   "PWD": "abc123qwe#abcqwe2",
-  "MIN_STEP": "18000",
-  "MAX_STEP": "25000",
+  "MIN_STEP": "15000",
+  "MAX_STEP": "18000",
   "PUSH_PLUS_TOKEN": "",
   "PUSH_PLUS_HOUR": ""
 }
@@ -222,8 +231,8 @@ Token没有变化时会跳过提交，不影响工作流成功状态。
 
 7. 请注意，账号不是 [小米账号]，而是 [小米运动/ZeppLife] 的账号。
 
-8. 最大步数和最小步数随着时间增长，10点执行时范围为10/22 \* 18000 ~ 10/22 \* 25000：8181 ~
-   11363，以此类推，在北京时间22点达到最大值，即22点执行时随机步数的范围为18000-25000之间。要修改这个范围可以修改CONFIG中的MIN_STEP和MAX_STEP。
+8. 最低步数固定为MIN_STEP，只对MAX_STEP - MIN_STEP的差值按北京时间24小时周期计算随机额外步数。
+   配置15000–18000时，10:00的随机总步数为15000–16250；每天00:00重新从15000开始。可通过CONFIG中的MIN_STEP和MAX_STEP修改范围。
 
 9. cron的执行根据github actions的资源进行排队，并不是百分百按指定的时间进行运行，请知悉。
 
