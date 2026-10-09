@@ -1,9 +1,16 @@
-# mimotion
+# mimotion — Personal Zepp Life Automation
 
-![ 刷步数](https://github.com/TonyJiangWJ/mimotion/actions/workflows/run.yml/badge.svg)
-[![GitHub forks](https://img.shields.io/github/forks/TonyJiangWJ/mimotion?style=flat-square)](https://github.com/TonyJiangWJ/mimotion/forks)
-[![GitHub stars](https://img.shields.io/github/stars/TonyJiangWJ/mimotion?style=flat-square)](https://github.com/TonyJiangWJ/mimotion/stargazers)
-[![GitHub issues](https://img.shields.io/github/issues/TonyJiangWJ/mimotion?style=flat-square)](https://github.com/TonyJiangWJ/mimotion/issues)
+[![Update Steps](https://github.com/huangyingting/mimotion/actions/workflows/run.yml/badge.svg)](https://github.com/huangyingting/mimotion/actions/workflows/run.yml)
+[![Randomize Schedule](https://github.com/huangyingting/mimotion/actions/workflows/cron.yml/badge.svg)](https://github.com/huangyingting/mimotion/actions/workflows/cron.yml)
+
+An independently maintained, private Zepp Life automation repository. There is no upstream synchronization; code and workflow changes are maintained directly here. Original project credits and the Apache-2.0 license are preserved.
+
+| Workflow | Purpose |
+|----------|---------|
+| Update Steps | Update steps on a schedule or manually, then save encrypted login tokens. |
+| Randomize Schedule | Randomize the schedule after a successful Update Steps run, or manually. |
+| Export Configuration | Manually export configuration using the configured private notification or encryption channel. |
+| Star Watcher | Log new repository stars. |
 
 ## 小米运动自动刷步数（支持邮箱登录）
 
@@ -21,17 +28,15 @@
 - 你可以在你 Zepp Life 中看到这个虚拟的设备
 - 然后按照以下步骤进行配置即可成功同步了
 
-### 如果觉得好用，请给一个免费的[star](https://github.com/TonyJiangWJ/mimotion/)吧
-
 ## Github Actions 部署指南
 
 本仓库部署在 `master` 分支，建议使用私有仓库。账号密码只保存到 Actions 的 `CONFIG` Secret，不要提交到代码中。
 当前部署的步数配置为 `MIN_STEP=15000`、`MAX_STEP=18000`，依然按北京时间线性增长，在22点达到完整范围。
-未设置 `CRON_HOURS` 时保留工作流中的默认小时，即北京时间18、20、22点运行，分钟由 `Random Cron` 自动调整。
+未设置 `CRON_HOURS` 时保留工作流中的默认小时，即北京时间18、20、22点运行，分钟由 `Randomize Schedule` 自动调整。
 执行中任何账号失败会使工作流失败，不再显示为成功；只有成功执行后才会自动更新随机时间。
 Token没有变化时会跳过提交，不影响工作流成功状态。
 
-### 一、Fork 此仓库，然后创建token
+### 一、为本仓库创建token
 
 #### 创建小权限的限时token，推荐
 
@@ -39,7 +44,7 @@ Token没有变化时会跳过提交，不影响工作流成功状态。
   创建个人token，建议使用Fine-grained tokens，避免token泄露导致不必要的麻烦。
 - 填写token的名称，用于自己区别干嘛用的。
 - 选择token有效期，最大时长为1年。一年后需要重新续期或重建，唯一缺点
-- `Repository access` 选择 `Only select repositories` 勾选自己fork后的仓库，下拉可搜索：输入 mimotion 进行检索
+- `Repository access` 选择 `Only select repositories` 勾选 `huangyingting/mimotion`
 - 点击 `Repository permissions` 展开菜单，并勾选以下四个权限即可，其他的可以不勾选
     - `Actions` Access: `Read and write` 用于获取Actions的权限
     - `Contents` Access: `Read and write` 用于更新定时任务和日志文件的权限
@@ -73,8 +78,8 @@ Token没有变化时会跳过提交，不影响工作流成功状态。
 - 注意：密钥不要用中文，长度一定要是16个字符，否则可能出错。
 - 如果你有多个账号，或者希望程序自动保存登录信息，就需要设置这个 `AES_KEY`。设置之后，程序会用这个密钥把各个账号的登录token信息加密保存起来。**请一定保管好你的密钥，不要泄露。**
 - 同时，请确保你已经正确配置了 PAT 密钥，否则程序无法自动保存和提交信息到仓库。
-- 第一次配置 `AES_KEY` 后，运行时可能会看到提示：“密钥不正确或者加密内容损坏 放弃token”，**这是正常现象**。因为原来加密文件用的是我的密钥，和你设置的不同，所以会提示不匹配。你直接忽略它，等程序运行完后，就会用你的新密钥生成一份新的加密文件，下次运行就正常了。
-- 配置 `AES_KEY` 后，每个人的仓库里面到会保存一份 `encrypted_tokens.data`。每次更新代码时，这个文件会被覆盖。**为了避免丢失你保存的信息，请在更新代码前备份这个文件**，等代码更新完，再把它放回仓库并提交，最后重新运行workflow。
+- 更换 `AES_KEY` 后，旧的 `encrypted_tokens.data` 无法解密，程序会重新登录并使用新密钥保存Token。若未更换密钥却出现解密错误，请检查密钥和文件是否损坏。
+- `encrypted_tokens.data` 由 `Update Steps` 自动维护。修改代码时保留该文件，不要用其他仓库的Token文件覆盖。
 
 #### 添加名为 **CONFIG** 的Secret变量
 
@@ -142,7 +147,7 @@ Token没有变化时会跳过提交，不影响工作流成功状态。
 -
 快捷跳转地址 [https://github.com/${你的github用户名}/mimotion/settings/variables/actions](../../settings/variables/actions)
     - 填写自动执行的时间，单位为小时，此处需要设置UTC时间，例如设置 `0,2,4,6,8,14` 则会在北京时间 `8,10,12,14,16,22` 点触发执行
-- 添加完成后可以在Actions中手动触发：`Random Cron` 来触发替换，或者等下一次定时执行时它将会自动替换。
+- 添加完成后可以在Actions中手动触发：`Randomize Schedule` 来触发替换，或者等下一次定时执行时它将会自动替换。
 
 ##### 2、编辑 **.github/workflows/run.yml** 中的cron表达式
 
@@ -156,7 +161,7 @@ Token没有变化时会跳过提交，不影响工作流成功状态。
       - cron: '0 0,2,4,6,8,14 * * *'
   ```
 
-- **注意** 如果已添加 `CRON_HOURS` 变量，则修改此文件的cron表达式会失效，在下次执行 `Random Cron`
+- **注意** 如果已添加 `CRON_HOURS` 变量，则修改此文件的cron表达式会失效，在下次执行 `Randomize Schedule`
   后表达式中小时的部分会被覆盖为 `CRON_HOURS` 配置的值
 
 - 注意以上两种方式二选一即可，推荐直接使用方式1，变量值填写的是逗号分隔的数字，别乱填别的报错别找我！
@@ -164,26 +169,26 @@ Token没有变化时会跳过提交，不影响工作流成功状态。
 
 ### 五、手动触发测试工作流
 
-- 前往Actions,左侧选择 `刷步数`
+- 前往Actions,左侧选择 `Update Steps`
   ，快捷链接：[https://github.com/${你的github用户名}/mimotion/actions/workflows/run.yml](../../actions/workflows/run.yml)
-- 新fork的仓库默认未启用工作流，进入Actions后点击 `I understand my workflows, go ahead and enable them`
-  启用，然后左侧选择 `刷步数` 之后，再点击 `enable workflow` 启用工作流。请确保开启工作流，否则不会定时执行。
+- 本仓库已启用工作流。如果手动关闭过，请在Actions中选择 `Update Steps` 并点击 `Enable workflow`，否则不会定时执行。
 - 点击右侧的`Run workflow`触发执行，触发后刷新即可查看执行记录。验证是否正确配置并执行刷步数。
 
 ### 六、感谢列表
 
-本项目基于 `https://github.com/xunichanghuan/mimotion(已被ban)`
+本项目最初基于 [TonyJiangWJ/mimotion](https://github.com/TonyJiangWJ/mimotion) 的代码独立维护，保留原项目及贡献者的署名。
+
+原项目基于 `https://github.com/xunichanghuan/mimotion(已被ban)`
 和 [https://github.com/huangshihai/mimotion](https://github.com/huangshihai/mimotion) 项目修改，特此感谢
 
 新版本登录需要加密，感谢[https://github.com/hanximeng/Zepp_API/blob/main/index.php](https://github.com/hanximeng/Zepp_API/blob/main/index.php)
 里面提供的aes加密密钥。大家可以去给作者点个star
 
-### 七、同步最新代码
+### 七、独立维护代码
 
-- 点击仓库界面上的 `Sync fork`，找不到的话直接Ctrl+F网页查找
-- 然后点击 `Update branch` 或者 `Discard xxx commits`等待同步完成即可，如有其他提示请自行按提示操作。请不要提交 **pull request**
-- 当配置了 `AES_KEY` 之后，因为每个人的仓库里面到会保存一份 `encrypted_tokens.data`，更新代码会被覆盖。为了避免数据丢失，请提前备份，在更新完成后将它重新提交到仓库中，然后再触发workflow。
-- 同步更新后请自己再次仔细阅读README，配置项目修改等请自行对比，更新后因为配置不正确导致无法运行请不要找我
+- 本仓库不是GitHub fork，也不配置upstream远程或自动同步。代码修改直接提交到本仓库。
+- 修改前先执行 `git pull --ff-only`，保留Actions自动维护的 `encrypted_tokens.data`、计划时间和执行记录。
+- 修改工作流后，应验证 `Update Steps` 与 `Randomize Schedule` 的自动触发关系。
 
 ### 八、忘记配置后的处理
 
@@ -191,7 +196,7 @@ Token没有变化时会跳过提交，不影响工作流成功状态。
 - 步骤：
   - 首先配置Secrets：`INSPECT_WECHAT_HOOK_KEY` 配置企业微信机器人的key，具体请参考企业微信机器人文档。
   - telegram配置Secrets：`INSPECT_TELEGRAM_BOT_TOKEN`和`INSPECT_TELEGRAM_CHAT_ID` 配置机器人的token和聊天chatId，具体请参考TelegramBot文档。
-  - 然后点击Actions，左侧选择 `提取配置信息` 手动运行它，运行成功后，将配置信息发送到企业微信或telegram中。企业微信或者telegram的推送自己按需选择，如果都不配置，请使用日志打印的方式。
+  - 然后点击Actions，左侧选择 `Export Configuration` 手动运行它，运行成功后，将配置信息发送到企业微信或telegram中。企业微信或者telegram的推送自己按需选择，如果都不配置，请使用日志打印的方式。
 - 如果没有企业微信或telegram，可以配置Secrets: `INSPECT_AES_KEY` 注意是16位的字符串，请勿使用弱密码，避免被人猜到。
   - 在Secrets中配置后，运行上述的Actions，然后在执行结果中查看日志打印的base64字符串。
   - 提取base64字符串后，可以使用在线AES加解密网站进行解密，加密方式为CBC，填充方式为PKCS7，密钥长度128bit，密钥和偏移量（iv）均为INSPECT_AES_KEY
@@ -200,7 +205,7 @@ Token没有变化时会跳过提交，不影响工作流成功状态。
 
 ## 注意事项
 
-1. 默认每天运行6+次，由run.yml中的cron控制，分钟为随机值，执行后自动更新分钟值，随机后可能当前整点二次执行，例如：8:
+1. 默认在北京时间18、20、22点运行，由run.yml中的cron控制，分钟为随机值，执行后自动更新分钟值，随机后可能当前整点二次执行，例如：8:
    05分执行后，分钟值随机为50，则会在8:50再次执行。
 
 - 如果配置了 `CRON_HOURS` Variable变量，则脚本将自动判断，例如8:05分执行后，将从小时中剔除8，即8:00-8:59都不会再重复执行，避免随机的步数混乱。
@@ -213,7 +218,7 @@ Token没有变化时会跳过提交，不影响工作流成功状态。
 
 5. 小米运动不会更新步数，只有关联的会同步！！！！！
 
-6. 请各位在使用时Fork[当前仓库](https://github.com/TonyJiangWJ/mimotion/)，防止出现不必要的bug.
+6. 本仓库独立维护，部署及问题排查以本仓库的代码和文档为准。
 
 7. 请注意，账号不是 [小米账号]，而是 [小米运动/ZeppLife] 的账号。
 
@@ -227,13 +232,13 @@ Token没有变化时会跳过提交，不影响工作流成功状态。
 ### 查看执行记录
 
 - 前往 [Actions](../../actions) 可以查看所有工作流的执行历史
-    - `刷步数 #41: Scheduled` 代表是定时任务触发，`刷步数 #33: Manually run by xxx` 代表手动触发
-- 点击其中一条记录，可以查看执行详情，这里以 `刷步数` 为例：
+    - `Update Steps #41: Scheduled` 代表是定时任务触发，`Update Steps #33: Manually run by xxx` 代表手动触发
+- 点击其中一条记录，可以查看执行详情，这里以 `Update Steps` 为例：
     - 详情界面 `Jobs` 可以查看到一个 `build` ，点击它查看执行步骤
-    - 执行步骤中主要关注 `开始` ，点击 `开始` 展开详情
+    - 执行步骤中主要关注 `Update Steps` ，点击 `Update Steps` 展开详情
     - 展开后便可以查看到执行日志，如果执行成功，则会显示每个账号当前随机的步数是多少
     - 如果执行失败，则需要根据实际情况分析具体失败原因
-- 对于随机Cron的工作流 `Random Cron`，它会在 `刷步数` 执行成功后触发，执行后会更新cron表达式创建随机的分钟值，然后提交到git仓库。这一步失败的主要原因有：
+- 对于随机Cron的工作流 `Randomize Schedule`，它会在 `Update Steps` 执行成功后触发，执行后会更新cron表达式创建随机的分钟值，然后提交到git仓库。这一步失败的主要原因有：
     - `PAT` Secret变量，也就是个人token设置的不正确
     - `CRON_HOURS` Variable变量设置的不正确，需要逗号分隔的小时字符串例如：`1,3,4,5,6,7` 。不要添加奇奇怪怪的东西
     - 其他请见执行日志
@@ -242,14 +247,14 @@ Token没有变化时会跳过提交，不影响工作流成功状态。
   trigger by: workflow_run
   current system time:
   UTC: 23-06-03 12:56:53
-  北京时间: 23-06-03 20:56:53
+  Beijing: 23-06-03 20:56:53
   current cron:
-  UTC时间: '48 1,4,7,10,12,14 * * *'
-  北京时间: '48 9,12,15,18,20,22 * * *'
+  UTC: '48 1,4,7,10,12,14 * * *'
+  Beijing: '48 9,12,15,18,20,22 * * *'
   next cron:
-  UTC时间: '37 1,4,7,10,12,14 * * *'
-  北京时间: '37 9,12,15,18,20,22 * * *'
-  next exec time: UTC(14:37) 北京时间(22:37)
+  UTC: '37 1,4,7,10,12,14 * * *'
+  Beijing: '37 9,12,15,18,20,22 * * *'
+  next exec time: UTC(14:37) Beijing(22:37)
   ```
 
 ## 本地开发

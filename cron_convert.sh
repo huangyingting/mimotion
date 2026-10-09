@@ -28,7 +28,7 @@ function inspect_next {
   if test -z "$next_exec_hour"; then
     next_exec_hour=$(echo "$cron_hours" | awk -F ',' '{print $1}')
   fi
-  echo "next exec time: UTC($next_exec_hour:$cron_minute) 北京时间($(((next_exec_hour + 8) % 24)):$cron_minute)"
+  echo "next exec time: UTC($next_exec_hour:$cron_minute) Beijing($(((next_exec_hour + 8) % 24)):$cron_minute)"
 }
 
 function hours_except_now {
@@ -59,7 +59,7 @@ function hours_except_now {
 
 function convert_utc_to_shanghai {
   local cron_str=$1
-  echo "UTC时间: ${cron_str}"
+  echo "UTC: ${cron_str}"
   minute=$(echo "$cron_str" | awk '{print $1}')
   hours=$(echo "$cron_str" | awk '{print $2}')
   lines=$(echo "$hours"|awk -F ',' '{for (i=1;i<=NF;i++) { print ($i+8)%24 }}')
@@ -72,7 +72,7 @@ function convert_utc_to_shanghai {
       result="$result,$line"
     fi
   done <<< "$lines"
-  echo "北京时间: $minute $result * * *'"
+  echo "Beijing: $minute $result * * *'"
 }
 
 function persist_execute_log {
@@ -82,7 +82,7 @@ function persist_execute_log {
   {
     echo "current system time:"
     TZ='UTC' date "+%y-%m-%d %H:%M:%S" | xargs -I {} echo "UTC: {}"
-    TZ='Asia/Shanghai' date "+%y-%m-%d %H:%M:%S" | xargs -I {} echo "北京时间: {}"
+    TZ='Asia/Shanghai' date "+%y-%m-%d %H:%M:%S" | xargs -I {} echo "Beijing: {}"
   } >> cron_change_time
   current_cron=$(< .github/workflows/run.yml grep cron|awk '{print substr($0, index($0,$3))}')
   {
@@ -108,4 +108,3 @@ function persist_execute_log {
   } >> cron_change_time
 
 }
-

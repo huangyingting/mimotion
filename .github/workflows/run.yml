@@ -1,4 +1,4 @@
-name: 刷步数
+name: Update Steps
 
 on:
   schedule:
@@ -14,19 +14,20 @@ concurrency:
 
 jobs:
   build:
+    name: Update Steps and Save Tokens
     runs-on: ubuntu-latest
     timeout-minutes: 60
     steps:
-      - name: Checkout codes
+      - name: Check Out Repository
         uses: actions/checkout@v5
         with:
-          token: ${{ secrets.PAT }} #此处PAT需要申请，教程详见：README
-      - name: 初始化Python
+          token: ${{ secrets.PAT }}
+      - name: Set Up Python
         uses: actions/setup-python@v6
         with:
           python-version: "3.10"
-          
-      - name: 开始
+
+      - name: Update Steps
         env:
             CONFIG: ${{ secrets.CONFIG }}
             AES_KEY: ${{ secrets.AES_KEY }}
@@ -34,12 +35,12 @@ jobs:
           pip3 install -r requirements.txt
           python3 main.py
 
-      - name: persist tokens
+      - name: Save Encrypted Tokens
         run: |
           git config user.name github-actions
           git config user.email github-actions@users.noreply.github.com
           git add encrypted_tokens.data
           if ! git diff --cached --quiet; then
-            git commit -m "persist tokens trigger by ${{ github.event_name }}"
+            git commit -m "Save encrypted tokens triggered by ${{ github.event_name }}"
             git push origin master
           fi
