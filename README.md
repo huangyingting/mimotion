@@ -4,12 +4,7 @@
 
 An independently maintained, private Zepp Life automation repository. There is no upstream synchronization; code and workflow changes are maintained directly here. Original project credits and the Apache-2.0 license are preserved.
 
-| Workflow | Purpose |
-|----------|---------|
-| Update Steps | Update steps at 07:00, 15:00, and 23:00 Beijing time, or manually, then save encrypted login tokens. |
-| Randomize Schedule | Optional manual schedule randomization; disabled to preserve the fixed daily schedule. |
-| Export Configuration | Manually export configuration using the configured private notification or encryption channel. |
-| Star Watcher | Log new repository stars. |
+The only workflow is **Update Steps**: update steps at 07:00, 15:00, and 23:00 Beijing time, or manually, then save encrypted login tokens.
 
 ## 小米运动自动刷步数（支持邮箱登录）
 
@@ -41,7 +36,7 @@ steps = MIN_STEP + random_integer(0, bonus_limit)
 每次执行设置当天的总步数，不累加；随机结果可能低于前一次，但始终在配置的最小和最大步数之间。
 
 每天按北京时间07:00、15:00、23:00执行，共3次；UTC cron为 `0 7,15,23 * * *`，对应北京时间15:00、23:00及次日07:00。
-`Randomize Schedule` 已禁用且仅保留手动触发入口，不会在成功执行后自动修改计划时间。
+仓库仅保留 `Update Steps` 工作流，不会在成功执行后自动修改计划时间。
 执行中任何账号失败会使工作流失败，不再显示为成功。
 Token没有变化时会跳过提交，不影响工作流成功状态。
 
@@ -92,7 +87,7 @@ Token没有变化时会跳过提交，不影响工作流成功状态。
 
 #### 添加名为 **CONFIG** 的Secret变量
 
-- 需要注意Secret变量是密文，提交后无法查看，只能删除或用新值更新，建议本地保存一下自己的配置数据方便后期修改。或者参考步骤八导出配置数据。
+- 需要注意Secret变量是密文，提交后无法查看，只能删除或用新值更新。建议在安全的密码管理器中保存配置数据，方便后期修改。
 - CONFIG的内容：
 
   ```json
@@ -159,7 +154,7 @@ Token没有变化时会跳过提交，不影响工作流成功状态。
       - cron: '0 7,15,23 * * *'
   ```
 
-- `CRON_HOURS` 不用于当前固定计划。请保持 `Randomize Schedule` 禁用；重新启用并手动运行它会改写固定计划。
+- 固定计划直接由 `run.yml` 控制，不使用 `CRON_HOURS` 变量或随机化工作流。
 - GitHub Actions可能排队延迟，计划时间并不保证精确到分钟。手动执行属于额外运行，不计入每天3次的定时计划。
 
 ### 五、手动触发测试工作流
@@ -183,20 +178,7 @@ Token没有变化时会跳过提交，不影响工作流成功状态。
 
 - 本仓库不是GitHub fork，也不配置upstream远程或自动同步。代码修改直接提交到本仓库。
 - 修改前先执行 `git pull --ff-only`，保留Actions自动维护的 `encrypted_tokens.data`、计划时间和执行记录。
-- 修改工作流后，应验证固定计划及 `Randomize Schedule` 的禁用状态。
-
-### 八、忘记配置后的处理
-
-- 当长时间没有使用或者忘记了配置，可以通过手动触发工作流来发送配置信息到企业微信通知中，或者telegram机器人，请务必配置在私有的企业微信或telegram群组中，避免密码等敏感信息泄露给别人
-- 步骤：
-  - 首先配置Secrets：`INSPECT_WECHAT_HOOK_KEY` 配置企业微信机器人的key，具体请参考企业微信机器人文档。
-  - telegram配置Secrets：`INSPECT_TELEGRAM_BOT_TOKEN`和`INSPECT_TELEGRAM_CHAT_ID` 配置机器人的token和聊天chatId，具体请参考TelegramBot文档。
-  - 然后点击Actions，左侧选择 `Export Configuration` 手动运行它，运行成功后，将配置信息发送到企业微信或telegram中。企业微信或者telegram的推送自己按需选择，如果都不配置，请使用日志打印的方式。
-- 如果没有企业微信或telegram，可以配置Secrets: `INSPECT_AES_KEY` 注意是16位的字符串，请勿使用弱密码，避免被人猜到。
-  - 在Secrets中配置后，运行上述的Actions，然后在执行结果中查看日志打印的base64字符串。
-  - 提取base64字符串后，可以使用在线AES加解密网站进行解密，加密方式为CBC，填充方式为PKCS7，密钥长度128bit，密钥和偏移量（iv）均为INSPECT_AES_KEY
-  - 可用网站：https://www.toolhelper.cn/SymmetricEncryption/AES
-- 以上两种方式都可以提取 CONFIG，PAT，AES_KEY 三个Secrets配置，请自行选择。
+- 修改工作流后，应验证固定计划，并确保只保留 `Update Steps`。
 
 ## 注意事项
 
@@ -230,7 +212,7 @@ Token没有变化时会跳过提交，不影响工作流成功状态。
     - 执行步骤中主要关注 `Update Steps` ，点击 `Update Steps` 展开详情
     - 展开后便可以查看到执行日志，如果执行成功，则会显示每个账号当前随机的步数是多少
     - 如果执行失败，则需要根据实际情况分析具体失败原因
-- `Randomize Schedule` 已禁用，不再自动触发。`cron_change_time` 仅保留旧的随机计划历史，当前计划以 `.github/workflows/run.yml` 为准。
+- `cron_change_time` 仅保留旧的随机计划历史，当前计划以 `.github/workflows/run.yml` 为准。
 
 ## 本地开发
 

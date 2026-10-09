@@ -22,11 +22,12 @@ class WorkflowScheduleTests(unittest.TestCase):
         )
         self.assertEqual(beijing_hours, [7, 15, 23])
 
-    def test_randomization_cannot_run_automatically(self):
-        workflow = (Path(__file__).resolve().parents[1] / ".github/workflows/cron.yml").read_text()
-        self.assertIn("workflow_dispatch:", workflow)
-        self.assertNotIn("workflow_run:", workflow)
-        self.assertNotRegex(workflow, r"(?m)^\s+schedule:")
+    def test_only_step_update_workflow_remains(self):
+        workflows = Path(__file__).resolve().parents[1] / ".github/workflows"
+        definitions = sorted(
+            path.name for path in workflows.iterdir() if path.suffix in (".yml", ".yaml")
+        )
+        self.assertEqual(definitions, ["run.yml"])
 
 
 class StepRangeTests(unittest.TestCase):
