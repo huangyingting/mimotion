@@ -1,11 +1,11 @@
 trigger by: workflow_run
 current system time:
-UTC: 26-10-09 07:21:48
-Beijing: 26-10-09 15:21:48
+UTC: 26-10-09 07:26:28
+Beijing: 26-10-09 15:26:28
 current cron:
-UTC: '38 10,12,14 * * *'
-Beijing: '38 18,20,22 * * *'
-next cron:
 UTC: '5 10,12,14 * * *'
 Beijing: '5 18,20,22 * * *'
-next exec time: UTC(10:5) Beijing(18:5)
+next cron:
+UTC: '42 10,12,14 * * *'
+Beijing: '42 18,20,22 * * *'
+next exec time: UTC(10:42) Beijing(18:42)
