@@ -1,14 +1,13 @@
 # mimotion — Personal Zepp Life Automation
 
 [![Update Steps](https://github.com/huangyingting/mimotion/actions/workflows/run.yml/badge.svg)](https://github.com/huangyingting/mimotion/actions/workflows/run.yml)
-[![Randomize Schedule](https://github.com/huangyingting/mimotion/actions/workflows/cron.yml/badge.svg)](https://github.com/huangyingting/mimotion/actions/workflows/cron.yml)
 
 An independently maintained, private Zepp Life automation repository. There is no upstream synchronization; code and workflow changes are maintained directly here. Original project credits and the Apache-2.0 license are preserved.
 
 | Workflow | Purpose |
 |----------|---------|
-| Update Steps | Update steps on a schedule or manually, then save encrypted login tokens. |
-| Randomize Schedule | Randomize the schedule after a successful Update Steps run, or manually. |
+| Update Steps | Update steps at 07:00, 15:00, and 23:00 Beijing time, or manually, then save encrypted login tokens. |
+| Randomize Schedule | Optional manual schedule randomization; disabled to preserve the fixed daily schedule. |
 | Export Configuration | Manually export configuration using the configured private notification or encryption channel. |
 | Star Watcher | Log new repository stars. |
 
@@ -41,8 +40,9 @@ steps = MIN_STEP + random_integer(0, bonus_limit)
 例如北京时间00:00为15000，12:00随机范围为15000–16500，18:00为15000–17250，22:00为15000–17750，23:59为15000–17997。
 每次执行设置当天的总步数，不累加；随机结果可能低于前一次，但始终在配置的最小和最大步数之间。
 
-未设置 `CRON_HOURS` 时保留工作流中的默认小时，即北京时间18、20、22点运行，分钟由 `Randomize Schedule` 自动调整。
-执行中任何账号失败会使工作流失败，不再显示为成功；只有成功执行后才会自动更新随机时间。
+每天按北京时间07:00、15:00、23:00执行，共3次；UTC cron为 `0 7,15,23 * * *`，对应北京时间15:00、23:00及次日07:00。
+`Randomize Schedule` 已禁用且仅保留手动触发入口，不会在成功执行后自动修改计划时间。
+执行中任何账号失败会使工作流失败，不再显示为成功。
 Token没有变化时会跳过提交，不影响工作流成功状态。
 
 ### 一、为本仓库创建token
@@ -80,7 +80,7 @@ Token没有变化时会跳过提交，不影响工作流成功状态。
 
 #### 添加名为 **PAT** 的Secret变量，值为第一步申请的token
 
-- `PAT` 的作用是拿来更新随机执行时间以及加密token数据的，为了保证正常使用，一定要配置正确。
+- `PAT` 用于提交加密token数据，为了保证正常使用，一定要配置正确。
 
 #### 添加名为 **AES_KEY** 的Secret变量，请自行创建一个长度为16个字符的字符串作为密钥
 
@@ -149,32 +149,18 @@ Token没有变化时会跳过提交，不影响工作流成功状态。
 
 ### 四、自定义启动时间
 
-#### 两种方式自定义启动时间
-
-##### 1、添加名为 `CRON_HOURS` 的Variables变量 `Settings-->Secrets and variables-->Actions-->New repository variables` 注意不是Secret
-
--
-快捷跳转地址 [https://github.com/${你的github用户名}/mimotion/settings/variables/actions](../../settings/variables/actions)
-    - 填写自动执行的时间，单位为小时，此处需要设置UTC时间，例如设置 `0,2,4,6,8,14` 则会在北京时间 `8,10,12,14,16,22` 点触发执行
-- 添加完成后可以在Actions中手动触发：`Randomize Schedule` 来触发替换，或者等下一次定时执行时它将会自动替换。
-
-##### 2、编辑 **.github/workflows/run.yml** 中的cron表达式
-
-- cron表达式格式如下: `分 小时 日期 月份 年份`
-- github actions中执行时间为UTC时间，即**北京时间-8**，如果需要每天`8，10，12，14，16，22`
-  点执行，则设置cron为`0 0,2,4,6,8,14 * * *`
+- 编辑 **.github/workflows/run.yml** 中的cron表达式即可修改固定计划。
+- cron表达式格式为 `分 小时 日 月 星期`。GitHub Actions使用UTC，即**北京时间-8**。
+- 当前北京时间07:00、15:00、23:00对应UTC23:00、07:00、15:00：
 
   ```yaml
   on:
     schedule:
-      - cron: '0 0,2,4,6,8,14 * * *'
+      - cron: '0 7,15,23 * * *'
   ```
 
-- **注意** 如果已添加 `CRON_HOURS` 变量，则修改此文件的cron表达式会失效，在下次执行 `Randomize Schedule`
-  后表达式中小时的部分会被覆盖为 `CRON_HOURS` 配置的值
-
-- 注意以上两种方式二选一即可，推荐直接使用方式1，变量值填写的是逗号分隔的数字，别乱填别的报错别找我！
-- github actions 0点为执行高峰，排队可能会延后一两小时才执行，建议直接从2开始
+- `CRON_HOURS` 不用于当前固定计划。请保持 `Randomize Schedule` 禁用；重新启用并手动运行它会改写固定计划。
+- GitHub Actions可能排队延迟，计划时间并不保证精确到分钟。手动执行属于额外运行，不计入每天3次的定时计划。
 
 ### 五、手动触发测试工作流
 
@@ -197,7 +183,7 @@ Token没有变化时会跳过提交，不影响工作流成功状态。
 
 - 本仓库不是GitHub fork，也不配置upstream远程或自动同步。代码修改直接提交到本仓库。
 - 修改前先执行 `git pull --ff-only`，保留Actions自动维护的 `encrypted_tokens.data`、计划时间和执行记录。
-- 修改工作流后，应验证 `Update Steps` 与 `Randomize Schedule` 的自动触发关系。
+- 修改工作流后，应验证固定计划及 `Randomize Schedule` 的禁用状态。
 
 ### 八、忘记配置后的处理
 
@@ -214,10 +200,7 @@ Token没有变化时会跳过提交，不影响工作流成功状态。
 
 ## 注意事项
 
-1. 默认在北京时间18、20、22点运行，由run.yml中的cron控制，分钟为随机值，执行后自动更新分钟值，随机后可能当前整点二次执行，例如：8:
-   05分执行后，分钟值随机为50，则会在8:50再次执行。
-
-- 如果配置了 `CRON_HOURS` Variable变量，则脚本将自动判断，例如8:05分执行后，将从小时中剔除8，即8:00-8:59都不会再重复执行，避免随机的步数混乱。
+1. 每天在北京时间07:00、15:00、23:00定时运行3次。执行后不会改写cron或随机分钟，也不会因为随机化而在同一小时重复执行。
 
 2. 多账户的数量和密码请一定要对上 不然无法使用!!!
 
@@ -247,24 +230,7 @@ Token没有变化时会跳过提交，不影响工作流成功状态。
     - 执行步骤中主要关注 `Update Steps` ，点击 `Update Steps` 展开详情
     - 展开后便可以查看到执行日志，如果执行成功，则会显示每个账号当前随机的步数是多少
     - 如果执行失败，则需要根据实际情况分析具体失败原因
-- 对于随机Cron的工作流 `Randomize Schedule`，它会在 `Update Steps` 执行成功后触发，执行后会更新cron表达式创建随机的分钟值，然后提交到git仓库。这一步失败的主要原因有：
-    - `PAT` Secret变量，也就是个人token设置的不正确
-    - `CRON_HOURS` Variable变量设置的不正确，需要逗号分隔的小时字符串例如：`1,3,4,5,6,7` 。不要添加奇奇怪怪的东西
-    - 其他请见执行日志
-- 随机Cron运行完毕后可以查看 `cron_change_time` 文件的内容，记录了触发方式、当前触发时间、cron表达式信息、下一次定时触发时间等信息，示例如下：
-  ```log
-  trigger by: workflow_run
-  current system time:
-  UTC: 23-06-03 12:56:53
-  Beijing: 23-06-03 20:56:53
-  current cron:
-  UTC: '48 1,4,7,10,12,14 * * *'
-  Beijing: '48 9,12,15,18,20,22 * * *'
-  next cron:
-  UTC: '37 1,4,7,10,12,14 * * *'
-  Beijing: '37 9,12,15,18,20,22 * * *'
-  next exec time: UTC(14:37) Beijing(22:37)
-  ```
+- `Randomize Schedule` 已禁用，不再自动触发。`cron_change_time` 仅保留旧的随机计划历史，当前计划以 `.github/workflows/run.yml` 为准。
 
 ## 本地开发
 

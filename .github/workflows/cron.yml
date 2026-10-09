@@ -1,9 +1,5 @@
 name: Randomize Schedule
 on:
-  workflow_run:
-    workflows: ["Update Steps"]
-    types:
-      - completed
   workflow_dispatch:
 
 permissions:
@@ -18,7 +14,6 @@ jobs:
     name: Randomize Schedule
     runs-on: ubuntu-latest
     timeout-minutes: 3
-    if: github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_dispatch'
     steps:
       - name: Check Out Repository
         uses: actions/checkout@v5

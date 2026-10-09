@@ -1,8 +1,32 @@
 import unittest
-from datetime import datetime
+from datetime import datetime, timezone
+from pathlib import Path
+import re
 from unittest.mock import patch
+from zoneinfo import ZoneInfo
 
 import main
+
+
+class WorkflowScheduleTests(unittest.TestCase):
+    def test_three_fixed_runs_in_beijing_time(self):
+        workflow = (Path(__file__).resolve().parents[1] / ".github/workflows/run.yml").read_text()
+        schedules = re.findall(r"- cron: '([^']+)'", workflow)
+        self.assertEqual(schedules, ["0 7,15,23 * * *"])
+        minute, hours, day, month, weekday = schedules[0].split()
+        self.assertEqual((minute, day, month, weekday), ("0", "*", "*", "*"))
+        beijing_hours = sorted(
+            datetime(2026, 10, 9, int(hour), tzinfo=timezone.utc)
+            .astimezone(ZoneInfo("Asia/Shanghai")).hour
+            for hour in hours.split(",")
+        )
+        self.assertEqual(beijing_hours, [7, 15, 23])
+
+    def test_randomization_cannot_run_automatically(self):
+        workflow = (Path(__file__).resolve().parents[1] / ".github/workflows/cron.yml").read_text()
+        self.assertIn("workflow_dispatch:", workflow)
+        self.assertNotIn("workflow_run:", workflow)
+        self.assertNotRegex(workflow, r"(?m)^\s+schedule:")
 
 
 class StepRangeTests(unittest.TestCase):
